@@ -4,13 +4,15 @@ use crate::schema::users::dsl::*;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use diesel::dsl::{delete, insert_into};
+use diesel::r2d2::{self, ConnectionManager};
 
 use std::vec::Vec;
-
-
 use serde::{Deserialize, Serialize};
-use super::Pool;
+//use super::Pool;
 use actix_web::{web, Error, HttpResponse};
+
+// type alias to use in multiple places
+pub type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[derive(Debug, Serialize, Deserialize, Queryable, Insertable)]
 #[table_name = "users"]
@@ -110,17 +112,17 @@ impl AuthUser {
     // that the code would look very straightforward, I mean,
     // the other way would imply a lot of pattern matching
     // making it look ugly.
-    pub fn login(&self, connection: &PgConnection) -> Result<User, MyStoreError> {
+    pub fn login(&self, conn: &PgConnection ) -> Result<User, MyStoreError> {
         use bcrypt::verify;
-        use diesel::QueryDsl;
-        use diesel::RunQueryDsl;
+        //use diesel::QueryDsl;
+        //use diesel::RunQueryDsl;
         use diesel::ExpressionMethods;
-        use crate::schema::users::dsl::email;
-
+        //use crate::schema::users::dsl::email;
+        //let conn: &PgConnection = &pool.get().unwrap();
         let mut records =
-            users::table
+            users
                 .filter(email.eq(&self.email))
-                .load::<User>(connection)?;
+                .load::<User>(conn)?;
         let user =
             records
                 .pop()

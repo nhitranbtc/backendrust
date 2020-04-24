@@ -3,33 +3,40 @@ extern crate diesel;
 extern crate log;
 extern crate actix;
 #[macro_use]
+extern crate serde_json;
+#[macro_use]
+extern crate dotenv;
+#[macro_use]
 extern crate dotenv_codegen; // Using the dotenv! macro
-//use actix_web::Responder;
-
-use actix_web::middleware::Logger;
-use actix_cors::Cors;
-use actix_web::{dev::ServiceRequest, post, http, web, App, Error, HttpServer, HttpResponse};
-use diesel::prelude::*;
-use diesel::r2d2::{self, ConnectionManager};
-
-use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
-use actix_web_httpauth::extractors::AuthenticationError;
-use actix_web_httpauth::middleware::HttpAuthentication;
-
-
 extern crate jwt;
 extern crate hyper;
 extern crate crypto;
+extern crate frank_jwt;
+//use actix_web::Responder;
+
+use dotenv::dotenv;
+use std::env;
+use actix_web::middleware::Logger;
+use actix_cors::Cors;
+use actix_web::{dev::ServiceRequest, post, http, web, App, Error, HttpServer, HttpResponse};
+use actix_identity::{Identity, IdentityService, CookieIdentityPolicy};
+use diesel::prelude::*;
+use diesel::r2d2::{self, ConnectionManager};
+
+use chrono::{Local, Duration};
+use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
+use actix_web_httpauth::extractors::AuthenticationError;
+use actix_web_httpauth::middleware::HttpAuthentication;
 
 
 mod errors;
 mod handlers;
 mod models;
 mod schema;
-mod auth;
+mod utils;
+//mod auth;
 
 pub type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
-
 
 #[derive(RustcDecodable, RustcEncodable)]
 struct UserLogin {
@@ -53,23 +60,23 @@ struct UserLogin {
 
 
 
-async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
-    println!("credentials {:?}", credentials);
-    let config = req
-        .app_data::<Config>()
-        .map(|data| data.get_ref().clone())
-        .unwrap_or_else(Default::default);
-    match auth::validate_token(credentials.token()) {
-        Ok(res) => {
-            if res == true {
-                Ok(req)
-            } else {
-                Err(AuthenticationError::from(config).into())
-            }
-        }
-        Err(_) => Err(AuthenticationError::from(config).into()),
-    }
-}
+// async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
+//     println!("credentials {:?}", credentials);
+//     let config = req
+//         .app_data::<Config>()
+//         .map(|data| data.get_ref().clone())
+//         .unwrap_or_else(Default::default);
+//     match auth::validate_token(credentials.token()) {
+//         Ok(res) => {
+//             if res == true {
+//                 Ok(req)
+//             } else {
+//                 Err(AuthenticationError::from(config).into())
+//             }
+//         }
+//         Err(_) => Err(AuthenticationError::from(config).into()),
+//     }
+// }
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -92,14 +99,25 @@ async fn main() -> std::io::Result<()> {
 
     // Start http server
     HttpServer::new(move || {
-        let auth = HttpAuthentication::bearer(validator);
+        //let auth = HttpAuthentication::bearer(validator);
         App::new()
             //.wrap(auth)
             .wrap(Logger::default())
+            // we implement middleares with the warp method
+            .wrap(
+                IdentityService::new(
+                    CookieIdentityPolicy::new(dotenv!("SECRET_KEY").as_bytes())
+                        .domain(dotenv!("MYSTOREDOMAIN"))
+                        .name("jwt")
+                        .path("/")
+                        .max_age(Duration::days(1).num_seconds())
+                        //.secure(dotenv!("COOKIE_SECURE").parse().unwrap())
+                )
+            )
             .wrap(
                 Cors::new()
                     //.allowed_origin(dotenv!("ALLOWED_ORIGIN"))
-                    .allowed_methods(vec!["POST", "PUT", "DELETE"])
+                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
                     .allowed_headers(vec![http::header::AUTHORIZATION,
                                           http::header::CONTENT_TYPE,
                                           http::header::ACCEPT])
@@ -112,6 +130,11 @@ async fn main() -> std::io::Result<()> {
                 web::resource("/register")
                     .route(web::post().to(handlers::user_api::register))
             )
+            .service(
+                web::resource("/auth")
+                    .route(web::post().to(handlers::authentication::login))
+            )
+
             .route("/users", web::get().to(handlers::user_api::get_users))
             //.route("/users/{id}", web::get().to(handlers::get_user_by_id))
             // .route("/users", web::post().to(handlers::add_user))
@@ -121,3 +144,4 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await
 }
+
