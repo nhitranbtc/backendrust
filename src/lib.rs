@@ -12,6 +12,9 @@ use frank_jwt::{Algorithm, ValidationOptions, encode, decode};
             "key2" : "val2",
             "key3" : "val3"
         });
+        //let start = Instant::now();
+        //let duration = start.elapsed();
+        //println!("Time elapsed in expensive_function() is: {:?}", duration);
 
         let secret = "secret123".to_string();
         let  header = json!({});

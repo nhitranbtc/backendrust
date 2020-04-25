@@ -8,7 +8,6 @@ extern crate serde_json;
 extern crate dotenv;
 #[macro_use]
 extern crate dotenv_codegen; // Using the dotenv! macro
-extern crate jwt;
 extern crate hyper;
 extern crate crypto;
 extern crate frank_jwt;
@@ -124,7 +123,6 @@ async fn main() -> std::io::Result<()> {
                     .max_age(3600)
                     .finish()
             )
-            // we implement middleware with the warp method
             .data(pool.clone())
             .service(
                 web::resource("/register")
@@ -140,7 +138,7 @@ async fn main() -> std::io::Result<()> {
             // .route("/users", web::post().to(handlers::add_user))
             // .route("/users/{id}", web::delete().to(handlers::delete_user))
     })
-    .bind("127.0.0.1:8080")?
+    .bind(&bind)?
     .run()
     .await
 }
