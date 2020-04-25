@@ -5,7 +5,7 @@ table! {
         last_name -> Text,
         email -> Varchar,
         company -> Text,
-        password -> Varchar,
+        password -> Text,
         created_at -> Timestamp,
     }
 }

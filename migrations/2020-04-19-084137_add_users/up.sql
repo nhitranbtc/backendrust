@@ -4,7 +4,7 @@ CREATE TABLE users (
   last_name TEXT NOT NULL,
   email VARCHAR(100) NOT NULL,
   company TEXT NOT NULL,
-  password VARCHAR(64) NOT NULL,
+  password TEXT NOT NULL,
   created_at TIMESTAMP NOT NULL
 );
 CREATE INDEX users_email_company_idx ON users (email, company);
