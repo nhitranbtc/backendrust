@@ -110,7 +110,7 @@ async fn main() -> std::io::Result<()> {
                         .name("jwt")
                         .path("/")
                         .max_age(Duration::days(1).num_seconds())
-                        //.secure(dotenv!("COOKIE_SECURE").parse().unwrap())
+                        .secure(dotenv!("COOKIE_SECURE").parse().unwrap())
                 )
             )
             .wrap(
@@ -131,6 +131,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::resource("/auth")
                     .route(web::post().to(handlers::authentication::login))
+                    .route(web::delete().to(handlers::authentication::logout))
             )
 
             .route("/users", web::get().to(handlers::user_api::get_users))

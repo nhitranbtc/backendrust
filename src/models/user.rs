@@ -55,7 +55,7 @@ impl User {
                 last_name: register_user.last_name,
                 email: register_user.email,
                 company: register_user.company,
-                //password: Self::hash_password(register_user.password)?,
+                //password: Self::hash_password_bcrypt(register_user.password)?,
                 password: Self::hash_password(register_user.password.as_bytes()),
                 created_at: Local::now().naive_local(),
             };
@@ -128,7 +128,6 @@ impl AuthUser {
     // the other way would imply a lot of pattern matching
     // making it look ugly.
     pub fn login(&self, conn: &PgConnection ) -> Result<User, MyStoreError> {
-        //use bcrypt::verify;
         //use diesel::QueryDsl;
         //use diesel::RunQueryDsl;
         use diesel::ExpressionMethods;
@@ -142,6 +141,7 @@ impl AuthUser {
             records
                 .pop()
                 .ok_or(MyStoreError::DBError(diesel::result::Error::NotFound))?;
+        //use bcrypt::verify;
         //let verify_password =
         // verify(&self.password, &user.password)
         //     .map_err(|_error| {

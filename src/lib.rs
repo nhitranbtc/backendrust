@@ -12,6 +12,7 @@ use frank_jwt::{Algorithm, ValidationOptions, encode, decode};
             "key2" : "val2",
             "key3" : "val3"
         });
+        //use std::time::{Duration, Instant};
         //let start = Instant::now();
         //let duration = start.elapsed();
         //println!("Time elapsed in expensive_function() is: {:?}", duration);
