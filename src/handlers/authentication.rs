@@ -1,5 +1,5 @@
 use std::pin::Pin;
-use crate::utils::frankjwt::{create_token, decode_token, test_decode};
+use crate::utils::frankjwt::{create_token_rs256, validate_signature_jwt_rs256, decode_jwt_rs256, test_encoded_rs256};
 use chrono::NaiveDateTime; // This type is used for date field in Diesel.
 use std::time::{Duration, Instant};
 use actix_identity::Identity;
@@ -29,11 +29,8 @@ pub async fn login(auth_user: web::Json<AuthUser>,
             }
         })?;
     // This is the jwt token we will send in a cookie.
-    let token = create_token(&user.email, &user.company)?;
-    //println!("token: {:?}", token);
-    let decode = decode_token(&token);
-    println!("decode: {:?}", decode.unwrap());
-
+    let token = create_token_rs256(&user.email, &user.company)?;
+    println!("token: {:?}", token);
     id.remember(token);
     let response =
         HttpResponse::Ok()
