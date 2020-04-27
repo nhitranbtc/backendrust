@@ -4,16 +4,21 @@ version = "0.1.0"
 authors = ["Nhi Tran <nhi.tran@hawking.network>"]
 edition = "2018"
 
+[lib]
+name = "mystore_lib"
+path = "src/lib.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 actix-identity = "0.2.0"
 actix-web = "2.0.0"
+actix-http = "1.0.1"
 actix-web-httpauth = { git = "https://github.com/actix/actix-web-httpauth" }
-chrono = { version = "0.4.10", features = ["serde"] }
+chrono = { version = "0.4.11", features = ["serde"] }
 derive_more = "0.99.2"
 diesel = { version = "1.4.2", features = ["postgres","uuidv07", "r2d2", "chrono"] }
-futures = "0.3.1"
+futures = "0.3.4"
 r2d2 = "0.8.8"
 serde = "1.0"
 serde_derive = "1.0"
@@ -42,6 +47,10 @@ dotenv = "0.15.0"
 jsonwebtoken = "7.1.0"
 rust-argon2 = "0.8"
 rand = "0.7.3"
+juniper = "0.14.2"
+token-generator = "0.1.0"
+
+
 
 
 
