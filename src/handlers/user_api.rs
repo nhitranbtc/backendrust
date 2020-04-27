@@ -1,7 +1,8 @@
+use actix::prelude::Future;
 use crate::models::user::{User, RegisterUser};
-use super::Pool;
 use actix_web::{web, Error, HttpResponse};
 use crate::errors::MyStoreError;
+use crate::models::user::{Pool, AuthUser};
 
 // We get a new connection pool, validate the data,
 // 'password' and 'password_confirmation' should be the same,
@@ -22,6 +23,20 @@ pub async fn register(new_user: web::Json<RegisterUser>, pool: web::Data<Pool>) 
         )
 }
 
+use crate::handlers::LoggedUser;
+function_handler!(
+    // index (product_search: web::Query<ProductSearch>, pagination: web::Query<ProductPagination>)
+    //  -> (|user: LoggedUser, pg_pool: PgPooledConnection| {
+    //         let search = &product_search.search;
+    //         ProductList::list(user.id, search, pagination.rank, &pg_pool)
+    //     })
+
+    get(db: web::Data<Pool>) -> (
+        |user: LoggedUser, pool: web::Data<Pool>| {
+            User::get_all_users(db)
+        }
+    )
+);
 
 pub async fn get_users(db: web::Data<Pool>) -> Result<HttpResponse, Error> {
     Ok(web::block(move || User::get_all_users(db))

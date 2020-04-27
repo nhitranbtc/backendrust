@@ -16,7 +16,10 @@ pub enum ServiceError {
     BadRequest(String),
 
     #[display(fmt = "Unauthorized")]
-    Unauthorized
+    Unauthorized,
+
+    #[display(fmt = "JWKSFetchError")]
+    JWKSFetchError,
 }
 
 // impl ResponseError trait allows to convert our errors into http responses with appropriate data
@@ -30,6 +33,9 @@ impl ResponseError for ServiceError {
             }
             ServiceError::Unauthorized => {
                 HttpResponse::Unauthorized().json("Unauthorized")
+            }
+            ServiceError::JWKSFetchError => {
+                HttpResponse::InternalServerError().json("Could not fetch JWKS")
             }
         }
     }
@@ -67,7 +73,8 @@ pub enum MyStoreError {
     HashError(BcryptError),
     DBError(result::Error),
     PasswordNotMatch(String),
-    WrongPassword(String)
+    WrongPassword(String),
+    PGConnectionError
 }
 
 // We neea this to performs a conversion from BcryptError to MyStoreError
@@ -92,6 +99,8 @@ impl fmt::Display for MyStoreError {
             MyStoreError::DBError(error) => write!(f, "{}", error),
             MyStoreError::PasswordNotMatch(error) => write!(f, "{}", error),
             MyStoreError::WrongPassword(error) => write!(f, "{}", error),
+            MyStoreError::PGConnectionError => write!(f, "error obtaining a db connection"),
+
         }
     }
 }

@@ -65,15 +65,16 @@ pub fn create_token_rs256(email: &str, company: &str) -> Result<String, HttpResp
     .map_err(|e| HttpResponse::InternalServerError().json(e.to_string()))
 }
 
-pub fn validate_signature_jwt_rs256(jwt1: &str) {
+pub fn validate_signature_jwt_rs256(jwt1: &str) -> Result<bool, ServiceError> {
     let mut path = env::current_dir().unwrap();
     path.push("test");
     path.push("my_rsa_2048_key.pem");
     path.to_str().unwrap().to_string();
-    let maybe_res =
-        validate_signature(&jwt1, &get_rsa_256_public_key_full_path(), Algorithm::RS256);
-    println!("maybe_res {:?}", maybe_res);
-    //assert!(maybe_res.unwrap());
+    let validate = validate_signature(&jwt1, &get_rsa_256_public_key_full_path(), Algorithm::RS256);
+    match validate {
+        Ok(b) => Ok(b),
+        Err(_e) => Err(ServiceError::JWKSFetchError),
+    }
 }
 
 pub fn decode_token(token: &str) -> Result<SlimUser, ServiceError> {
