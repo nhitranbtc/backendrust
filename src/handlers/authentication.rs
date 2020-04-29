@@ -10,19 +10,18 @@ use actix_web::{
     HttpResponse,
 };
 use diesel::prelude::*;
-use futures::future::Future;
-use serde::Deserialize;
 use crate::errors::{MyStoreError, ServiceError};
-use crate::models::user::{Pool, AuthUser};
-use token_generator::TokenGenerator;
+use crate::models::user::{AuthUser};
+use crate::db_connection::PgPool;
+use crate::handlers::pg_pool_handler;
 
 pub async fn login(auth_user: web::Json<AuthUser>,
     id: Identity,
-    pool: web::Data<Pool>) -> Result<HttpResponse, HttpResponse> {
-    let conn: &PgConnection = &pool.get().unwrap();
+    pool: web::Data<PgPool>) -> Result<HttpResponse, HttpResponse> {
+    let pg_pool = pg_pool_handler(pool)?;
 
     let user = auth_user
-        .login(conn)
+        .login(&pg_pool)
         .map_err(|e| {
             match e {
                 MyStoreError::DBError(diesel::result::Error::NotFound) =>
@@ -63,6 +62,7 @@ pub fn validate_token(token: &str) -> Result<bool, ServiceError> {
      Ok(res.is_ok())
 }
 
+#[allow(dead_code)]
 fn test_identity(id: Identity) {
     // access request identity
     match id.identity() {
@@ -71,9 +71,4 @@ fn test_identity(id: Identity) {
         }
         None=> println!("Anonymous")
     }
-    // if let Some(id) = id.identity() {
-    //     format!("Welcome! {}", id)
-    // } else {
-    //     "Welcome Anonymous!".to_owned()
-    // };
 }

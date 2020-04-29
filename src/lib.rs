@@ -32,7 +32,7 @@ extern crate actix_http;
 #[macro_use]
 extern crate juniper;
 
-//pub mod db_connection;
+pub mod db_connection;
 pub mod errors;
 //pub mod graphql;
 pub mod handlers;

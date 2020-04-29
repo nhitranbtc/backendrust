@@ -29,15 +29,8 @@ use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
 use actix_web_httpauth::extractors::AuthenticationError;
 use actix_web_httpauth::middleware::HttpAuthentication;
 use token_generator::TokenGenerator;
+use ::mystore_lib::db_connection::establish_connection;
 
-
-mod errors;
-mod handlers;
-mod models;
-mod schema;
-mod utils;
-
-pub type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[derive(RustcDecodable, RustcEncodable)]
 struct UserLogin {
@@ -45,46 +38,20 @@ struct UserLogin {
     password: String
 }
 
-async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
-    println!("credentials {:?}", credentials);
-    let config = req
-        .app_data::<Config>()
-        .map(|data| data.get_ref().clone())
-        .unwrap_or_else(Default::default);
-    match handlers::authentication::validate_token(credentials.token()) {
-        Ok(res) => {
-            if res == true {
-                Ok(req)
-            } else {
-                Err(AuthenticationError::from(config).into())
-            }
-        }
-        Err(_) => Err(AuthenticationError::from(config).into()),
-    }
-}
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
-    dotenv::dotenv().ok();
+    //dotenv::dotenv().ok();
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    // create db connection pool
 
-    let manager = ConnectionManager::<PgConnection>::new(database_url);
-    let pool: Pool = r2d2::Pool::builder()
-        .build(manager)
-        .expect("Failed to create pool.");
     let bind = "127.0.0.1:8080";
     println!("Starting server at: {}", &bind);
 
     // Start http server
     HttpServer::new(move || {
-        //let auth = HttpAuthentication::bearer(validator);
         let access_token_header = header::HeaderName::from_lowercase(b"access_token").unwrap();
-
         App::new()
-            //.wrap(auth)
             .wrap(Logger::default())
             // we implement middleares with the warp method
             .wrap(
@@ -109,20 +76,19 @@ async fn main() -> std::io::Result<()> {
                     .max_age(3600)
                     .finish()
             )
-
-            .data(pool.clone())
+            .data(establish_connection())
             .service(
             web::resource("/users")
-                .route(web::get().to(::mystore_lib::handlers::user_api::get))
+                .route(web::get().to(::mystore_lib::handlers::apis::get))
             )
             .service(
                 web::resource("/register")
-                    .route(web::post().to(handlers::user_api::register))
+                    .route(web::post().to(::mystore_lib::handlers::register::register))
             )
             .service(
                 web::resource("/auth")
-                    .route(web::post().to(handlers::authentication::login))
-                    .route(web::delete().to(handlers::authentication::logout))
+                    .route(web::post().to(::mystore_lib::handlers::authentication::login))
+                    .route(web::delete().to(::mystore_lib::handlers::authentication::logout))
             )
             //.route("/users", web::get().to(handlers::user_api::get_users))
             //.route("/users/{id}", web::get().to(handlers::get_user_by_id))

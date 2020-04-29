@@ -1,50 +1,37 @@
 #[macro_use]
 pub mod function_handler;
-pub mod async_auth;
 pub mod authentication;
-pub mod user_api;
+pub mod register;
+pub mod apis;
 
-use crate::errors::ServiceError;
 use crate::utils::frankjwt::{
-    decode_jwt_rs256, test_encoded_rs256, validate_signature_jwt_rs256, SlimUser,
+    decode_jwt_rs256, validate_signature_jwt_rs256, SlimUser,
 };
-use actix_identity::Identity;
-use actix_web::error::ErrorBadRequest;
-use actix_web::HttpResponse;
-use actix_web::{dev, Error, FromRequest, HttpRequest};
-use actix_web::{web, Result};
-use futures::future::{err, ok, Ready};
+use crate::db_connection::{ PgPool, PgPooledConnection };
 
-use rand;
+use actix_identity::Identity;
+use actix_web::{dev, Error, FromRequest, HttpRequest, HttpResponse};
+use actix_web::{web, Result};
+
+use futures::future::{err, ok, Ready};
 use serde::{Deserialize, Serialize};
-use token_generator::TokenGenerator;
+
+//use crate::errors::ServiceError;
+//use rand;
+//use token_generator::TokenGenerator;
+
 // Because I'm using function a lot,
 // I'm including it in the mod file accessible to all handlers.
+
+pub fn pg_pool_handler(pool: web::Data<PgPool>) -> Result<PgPooledConnection> {
+    pool
+    .get()
+    .map_err(|e| {
+        actix_web::error::ErrorInternalServerError(e)
+    })
+}
+
 pub type LoggedUser = SlimUser;
-
-//use hex;
-//use csrf_token::CsrfTokenGenerator;
-
-#[derive(Debug, Deserialize)]
-struct Thing {
-    name: String,
-}
-
-impl FromRequest for Thing {
-    type Error = Error;
-    type Future = Ready<Result<Self, Self::Error>>;
-    type Config = ();
-
-    fn from_request(req: &HttpRequest, payload: &mut dev::Payload) -> Self::Future {
-        if rand::random() {
-            ok(Thing {
-                name: "thing".into(),
-            })
-        } else {
-            err(ErrorBadRequest("no luck"))
-        }
-    }
-}
 
 impl FromRequest for LoggedUser {
     type Error = HttpResponse;
@@ -61,11 +48,15 @@ impl FromRequest for LoggedUser {
 
         let token = access_token.to_str().unwrap();
         let valiate = validate_signature_jwt_rs256(&token).unwrap();
+        println!("valiate {}", valiate);
 
-        //let decoded_token = decode_jwt_rs256(token).unwrap();
         if valiate {
-            let user: SlimUser = decode_jwt_rs256(&token).unwrap();
-            ok(Some(user).unwrap())
+            match decode_jwt_rs256(&token) {
+                Ok(user) => {
+                    ok(Some(user).unwrap())
+                }
+                Err(_) => err(HttpResponse::Unauthorized().json("Unauthorized".to_string()))
+            }
 
         } else {
             err(HttpResponse::Unauthorized().json("Unauthorized".to_string()))
@@ -73,12 +64,4 @@ impl FromRequest for LoggedUser {
     }
 }
 
-fn index(id: Identity) -> String {
-    // access request identity
-    if let Some(id) = id.identity() {
-        format!("Welcome! {}", id)
-    } else {
-        "Welcome Anonymous!".to_owned()
-    }
-}
 

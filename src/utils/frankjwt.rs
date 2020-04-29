@@ -11,7 +11,10 @@ struct Claims {
     sub: String,
     company: String,
     exp: usize,
+    //exp: u64,
+
 }
+
 
 // We're using a struct so we can implement a conversion from
 // Claims to SlimUser, useful in the decode function.
@@ -35,18 +38,18 @@ impl Claims {
         Claims {
             sub: email.into(),
             company: company.into(),
-            exp: (Local::now() + Duration::hours(24)).timestamp() as usize,
+            //exp : utc,
+            exp: (Local::now() + Duration::seconds(60)).timestamp() as usize,
         }
     }
 }
-
 #[allow(dead_code)]
-pub fn create_token(email: &str, company: &str) -> Result<String, HttpResponse> {
-    let claims = json!(Claims::with_email(email, company));
-    let secret = dotenv!("JWT_SECRET").to_string();
-    let header = json!({});
-    encode(header, &secret, &claims, Algorithm::HS256)
-        .map_err(|e| HttpResponse::InternalServerError().json(e.to_string()))
+fn test_exp() -> bool {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let exp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    println!("exp {}", exp -2);
+    let utc = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+    (exp + 0) > utc
 }
 
 pub fn create_token_rs256(email: &str, company: &str) -> Result<String, HttpResponse> {
@@ -77,41 +80,19 @@ pub fn validate_signature_jwt_rs256(jwt1: &str) -> Result<bool, ServiceError> {
     }
 }
 
-pub fn decode_token(token: &str) -> Result<SlimUser, ServiceError> {
-    let secret = dotenv!("JWT_SECRET").to_string();
-    let decoded = decode(
-        token,
-        &secret,
-        Algorithm::HS256,
-        &ValidationOptions::dangerous(),
-    );
-    match decoded {
-        Ok(v) => {
-            let (_header, payload) = v;
-            //println!("header {}", header);
-            //println!("payload {}", payload);
-            let email = payload["sub"].as_str().unwrap();
-            let company = payload["company"].as_str().unwrap();
-            let claims = Claims::with_email(email, company);
-            //println!("claims {:?}", claims);
-            let new_user = SlimUser::from(claims);
-            Ok(new_user)
-        }
-        Err(_e) => Err(ServiceError::Unauthorized),
-    }
-}
 
 pub fn decode_jwt_rs256(token: &str) -> Result<SlimUser, ServiceError> {
     let decoded = decode(
         &token,
         &get_rsa_256_public_key_full_path(),
         Algorithm::RS256,
-        &ValidationOptions::dangerous(),
+        &ValidationOptions::default(),
     );
+    println!("Decode {:?}", decoded);
     match decoded {
         Ok(v) => {
             let (header, payload) = v;
-            println!("header \n{}", header);
+            //println!("header \n{}", header);
             //println!("payload {}", payload);
             let email = payload["sub"].as_str().unwrap();
             let company = payload["company"].as_str().unwrap();
@@ -137,6 +118,56 @@ fn get_rsa_256_private_key_full_path() -> PathBuf {
     path.push("my_rsa_2048_key.pem");
     path.to_path_buf()
 }
+
+#[allow(dead_code)]
+pub fn create_token(email: &str, company: &str) -> Result<String, HttpResponse> {
+    let claims = json!(Claims::with_email(email, company));
+    let secret = dotenv!("JWT_SECRET").to_string();
+    let header = json!({});
+    encode(header, &secret, &claims, Algorithm::HS256)
+        .map_err(|e| HttpResponse::InternalServerError().json(e.to_string()))
+}
+
+pub fn decode_token(token: &str) -> Result<SlimUser, ServiceError> {
+    let secret = dotenv!("JWT_SECRET").to_string();
+    let decoded = decode(
+        token,
+        &secret,
+        Algorithm::HS256,
+        &ValidationOptions::default(),
+    );
+    match decoded {
+        Ok(v) => {
+            let (_header, payload) = v;
+            //println!("header {}", header);
+            //println!("payload {}", payload);
+            let email = payload["sub"].as_str().unwrap();
+            let company = payload["company"].as_str().unwrap();
+            let claims = Claims::with_email(email, company);
+            //println!("claims {:?}", claims);
+            let new_user = SlimUser::from(claims);
+            Ok(new_user)
+        }
+        Err(_e) => Err(ServiceError::Unauthorized),
+    }
+}
+
+    #[test]
+    fn test_leeway_exp() {
+        let utc = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let p1 = json!({
+            "exp" : utc - 2,
+        });
+
+        let secret = "secret123".to_string();
+        let header = json!({});
+        let jwt = encode(header, &secret, &p1, Algorithm::HS512).unwrap();
+
+        let mut validation = ValidationOptions::default();
+        //validation.exp_leeway = 5;
+        let result = decode(&jwt, &String::from("secret123"), Algorithm::HS512, &validation);
+        assert_eq!(result.is_ok(), true);
+    }
 
 #[allow(dead_code)]
 pub fn test_decode(token: &str) {
