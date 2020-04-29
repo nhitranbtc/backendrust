@@ -4,27 +4,20 @@ use crate::schema::users::dsl::*;
 use crate::diesel::QueryDsl;
 use crate::diesel::RunQueryDsl;
 use diesel::dsl::{delete, insert_into};
-use diesel::r2d2::{self, ConnectionManager};
-use std::time::{Duration, Instant};
-
-
 use diesel::PgConnection;
-use crate::errors::MyStoreError;
+use uuid::Uuid;
 
+use crate::errors::MyStoreError;
 use std::vec::Vec;
 use serde::{Deserialize, Serialize};
-//use super::Pool;
-use actix_web::{web, Error, HttpResponse};
 
-// type alias to use in multiple places
-pub type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[derive(Debug, Serialize, Deserialize, Queryable, Insertable)]
 #[table_name = "users"]
 
 pub struct User {
     //#[serde(skip)] // we're removing id from being show in the response
-    pub id: i32,
+    pub id: String,
     pub first_name: String,
     pub last_name: String,
     pub email: String,
@@ -45,12 +38,11 @@ pub struct NewUser {
     pub created_at: NaiveDateTime,
 }
 
-
 // MyStoreError is a custom error that I will show it next.
 impl User {
-    pub fn create(register_user: RegisterUser, db: web::Data<Pool>,) -> Result<User, MyStoreError> {
-        let connection = db.get().unwrap();
-        let new_user = NewUser {
+    pub fn create(register_user: RegisterUser, connection: &PgConnection) -> Result<User, MyStoreError> {
+        let new_user = User {
+                id: Uuid::new_v4().to_string(),
                 first_name: register_user.first_name,
                 last_name: register_user.last_name,
                 email: register_user.email,
@@ -61,11 +53,10 @@ impl User {
             };
         Ok(insert_into(users::table)
              .values(&new_user)
-             .get_result(&connection)?)
+             .get_result(connection)?)
         }
-    pub fn get_all_users(pool: web::Data<Pool>) -> Result<Vec<User>, diesel::result::Error> {
-        let conn = pool.get().unwrap();
-        let items = users.load::<User>(&conn)?;
+    pub fn get_all_users(connection: &PgConnection) -> Result<Vec<User>, diesel::result::Error> {
+        let items = users.load::<User>(connection)?;
         Ok(items)
     }
         // This might look kind of weird,
@@ -130,9 +121,8 @@ impl AuthUser {
     pub fn login(&self, conn: &PgConnection ) -> Result<User, MyStoreError> {
         //use diesel::QueryDsl;
         //use diesel::RunQueryDsl;
-        use diesel::ExpressionMethods;
         //use crate::schema::users::dsl::email;
-        //let conn: &PgConnection = &pool.get().unwrap();
+        use diesel::ExpressionMethods;
         let mut records =
             users
                 .filter(email.eq(&self.email))
@@ -163,6 +153,7 @@ impl AuthUser {
 }
 #[test]
 fn test_hash() {
+    use std::time::{Duration, Instant}; //use for duration.
     let hashed = User::hash_password_bcrypt("123456789".to_string());
     println!("hashed {:?}", hashed);
     use argon2::{self, Config};
