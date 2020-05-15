@@ -13,11 +13,12 @@ extern crate actix;
 extern crate actix_cors;
 extern crate actix_identity;
 extern crate actix_web;
+
 //extern crate argon2;
 extern crate bcrypt;
-extern crate token_generator;
 extern crate frank_jwt;
 extern crate jsonwebtoken as jwt;
+extern crate token_generator;
 
 #[macro_use]
 extern crate dotenv_codegen;
@@ -29,8 +30,15 @@ extern crate env_logger;
 extern crate actix_http;
 //extern crate diesel_full_text_search;
 
+extern crate tokio;
+
 #[macro_use]
 extern crate juniper;
+extern crate juniper_subscriptions;
+extern crate juniper_warp;
+
+// Implement NATs
+extern crate nats;
 
 pub mod db_connection;
 pub mod errors;
@@ -39,3 +47,4 @@ pub mod handlers;
 pub mod models;
 pub mod schema;
 pub mod utils;
+pub mod nats_actor;
