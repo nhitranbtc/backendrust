@@ -44,11 +44,10 @@ impl FromRequest for LoggedUser {
                 .headers()
                 .get("access_token")
                 .ok_or(HttpResponse::Unauthorized()).unwrap();
-        println!("Access Token {:?}", access_token);
+        //println!("Access Token {:?}", access_token);
 
         let token = access_token.to_str().unwrap();
         let valiate = validate_signature_jwt_rs256(&token).unwrap();
-        println!("valiate {}", valiate);
 
         if valiate {
             match decode_jwt_rs256(&token) {

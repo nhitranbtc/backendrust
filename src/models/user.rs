@@ -151,7 +151,8 @@ impl AuthUser {
 
     }
 }
-#[test]
+
+//#[test]
 fn test_hash() {
     use std::time::{Duration, Instant}; //use for duration.
     let hashed = User::hash_password_bcrypt("123456789".to_string());
