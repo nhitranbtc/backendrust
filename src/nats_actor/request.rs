@@ -6,9 +6,10 @@ pub fn make_request(subj: &'static str) {
 }
 
 pub fn test_make_request() {
-    let subj = "hel.please";
-    let mut client = NatsSubActor::subscribe(subj).client;
+    let subj = "topic.order";
+    let actor: NatsSubActor = NatsSubActor::subscribe(subj);
+    let mut client = actor.client;
     make_request(subj);
-    NatsSubActor::event(client.events());
+    NatsSubActor::event(client);
 }
 
