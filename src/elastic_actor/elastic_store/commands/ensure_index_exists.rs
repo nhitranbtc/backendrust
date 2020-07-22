@@ -10,7 +10,7 @@ use std::io::Error as IoError;
 use crate::elastic_actor::elastic_store::{Client};
 use crate::elastic_actor::{model};
 
-type MyType = model::mytype::MyType;
+type Doc = model::mytype::IndexDoc;
 
 pub trait EnsureIndexExists {
     fn ensure_index_exists(&self) -> Result<(), EnsureIndexExistsError>;
@@ -27,7 +27,7 @@ impl EnsureIndexExists for Client {
             StatusCode::OK => {
                 println!("updated index");
                 self.io
-                    .document::<model::mytype::MyType>()
+                    .document::<Doc>()
                     .put_mapping()
                     .send()?;
             },
@@ -56,7 +56,7 @@ impl MappingDoc for Client {
     fn get_mapping(&self) -> Result<Value, EnsureIndexExistsError> {
         let get_mapping = self
             .io
-            .request(IndicesGetMappingRequest::for_index(MyType::static_index()))
+            .request(IndicesGetMappingRequest::for_index(Doc::static_index()))
             .send()
             .and_then(|res| res.into_response::<Value>());
         let index = get_mapping.unwrap();

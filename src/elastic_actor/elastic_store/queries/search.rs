@@ -1,25 +1,21 @@
-use elastic::client::responses::search::{Documents, Hits};
 use elastic::{prelude::*, Error as ResponseError};
-
 use serde_json::Error as JsonError;
-use serde_json::Value;
-
-use crate::elastic_actor::elastic_store::Client;
-use crate::elastic_actor::model;
 use std::io::Error as IoError;
 
-type MyType = model::mytype::MyType;
-type Response = GetResponse<MyType>;
+use crate::elastic_actor::elastic_store::Client;
+use crate::elastic_actor::model::mytype::Doc;
+
+type Response = GetResponse<Doc>;
 
 pub trait SearchDocument {
-    fn search(&self, query: &str) -> Result<SearchResponse<MyType>, ResponseError>;
+    fn search(&self, query: &str) -> Result<SearchResponse<Doc>, ResponseError>;
 }
 
 impl SearchDocument for Client {
-    fn search(&self, query: &str) -> Result<SearchResponse<MyType>, ResponseError> {
+    fn search(&self, query: &str) -> Result<SearchResponse<Doc>, ResponseError> {
         let response = self
             .io
-            .document::<MyType>()
+            .document::<Doc>()
             .search()
             .body(json!({
                 "query":{

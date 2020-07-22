@@ -1,6 +1,6 @@
-use super::mytype::MyType;
 use elastic::prelude::*;
 use serde_json::Value;
+use super::mytype::IndexDoc;
 
 /// Get the name of the index.
 pub fn name() -> Index<'static> {
@@ -38,7 +38,7 @@ pub fn body() -> Value {
                 }
             }
         },
-        "mappings": MyType::index_mapping()
+        "mappings": IndexDoc::index_mapping()
             //Account::static_ty(): Account::index_mapping()
     })
 }

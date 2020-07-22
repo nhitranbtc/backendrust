@@ -1,3 +1,5 @@
+///! https://docs.rs/elastic/0.21.0-pre.5/elastic/types/string/text/struct.Text.html
+
 use elastic::prelude::*;
 use uuid::Uuid;
 use serde_json::Value;
@@ -5,23 +7,37 @@ use serde_json::Value;
 #[derive(Debug, Clone, Serialize, Deserialize, ElasticType)]
 //#[elastic(index(expr = "self.index()"))]
 #[elastic(index = "mytype")]
-pub struct MyType {
+pub struct IndexDoc {
     #[elastic(id)]
-    pub id: String,
+    pub id: Id,
     pub title: String,
     pub generation: i64,
-    pub nested: MyNested,
+    pub nested: Option<MyNested>,
+    pub object: MyObject,
+    pub timestamp: Date<DefaultDateMapping>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ElasticType)]
+#[elastic(index = "mytype")]
+pub struct Doc {
+    #[elastic(id)]
+    pub id: Id,
+    pub title: String,
+    pub generation: i64,
+    pub nested: Option<Value>,
     pub object: MyObject,
     pub timestamp: Date<DefaultDateMapping>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NewMyType {
+pub struct UpdateDoc {
     pub title: String,
     pub generation: i64,
-    pub nested: MyNested,
+    pub nested: Option<Value>,
     pub object: MyObject
 }
+
+pub type Id = Keyword<DefaultKeywordMapping>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ElasticType)]
 pub struct MyNested {
@@ -44,34 +60,30 @@ impl ObjectMapping for MyObject {
 }
 
 
-impl MyType {
+impl IndexDoc {
     #[allow(dead_code)]
     fn index() -> Index<'static> {
         "mytype".into()
     }
-    pub fn create_sample() -> Self {
-        let data = json!({
-            "title":"Title "
-        });
-        let mytype = Self::index_res(data);
-        mytype
-    }
+}
 
+impl Doc {
     pub fn new() -> Self {
+        let v = json!({"my_num": 2});
         let data = json!({
             "title":"Title ",
             "generation": 0,
-            "nested": json!({"my_num": 1}),
-            "object": json!({"my_num": 1})
+            "nested": json!([v]),
+            "object": json!({"my_num": 1}),
         });
-        let mytype = Self::index_res(data);
-        mytype
+        Self::index_res(data)
     }
 
     pub fn index_res(data: Value) -> Self {
-        let mytype: NewMyType = serde_json::from_value(data).unwrap();
+        let mytype: UpdateDoc = serde_json::from_value(data).unwrap();
+        let uuid = Uuid::new_v4().to_string();
         Self {
-            id: Uuid::new_v4().to_string(),
+            id: Keyword::<DefaultKeywordMapping>::new(uuid),
             title: mytype.title,
             generation: mytype.generation,
             nested: mytype.nested,
@@ -79,4 +91,5 @@ impl MyType {
             timestamp: Date::now(),
         }
     }
+
 }
